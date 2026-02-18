@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur de Fluence</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Partie gauche - Saisie */
+        .left-panel {
+            flex: 0 0 40%;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .left-content {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-family: inherit;
+            min-height: 200px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .settings-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .settings-group h3 {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-item label {
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #5568d3;
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #5568d3;
+            transform: scale(1.1);
+        }
+
+        .word-count-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .word-count-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .word-count-label {
+            color: #555;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            margin-top: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-pdf:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Partie droite - Aperçu */
+        .right-panel {
+            flex: 1;
+            background: #2b2b2b;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            background: #3a3a3a;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: white;
+            border-bottom: 1px solid #444;
+        }
+
+        .toolbar-label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .toolbar select {
+            background: #2b2b2b;
+            color: white;
+            border: 1px solid #555;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: #555;
+        }
+
+        .zoom-info {
+            margin-left: auto;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .preview-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            background: #2b2b2b;
+        }
+
+        .preview-page {
+            background: white;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20mm;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            min-height: 297mm;
+        }
+
+        .preview-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #000;
+        }
+
+        .text-display {
+            display: block;
+        }
+
+        .line-row {
+            display: flex;
+            align-items: baseline;
+            margin: 0;
+            padding: 0;
+        }
+
+        .text-column {
+            flex: 0 0 85%;
+            padding-right: 15px;
+        }
+
+        .numbers-column {
+            flex: 0 0 15%;
+            text-align: right;
+            color: #666;
+            border-left: 1px solid #ddd;
+            padding-left: 10px;
+        }
+
+        .text-line {
+            margin: 0;
+            padding: 0;
+            color: #000;
+        }
+
+        .number-line {
+            margin: 0;
+            padding: 0;
+            font-weight: 600;
+            font-size: 10pt;
+        }
+
+        .preview-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .preview-footer p {
+            margin: 5px 0;
+            font-size: 11pt;
+            color: #000;
+        }
+
+        .preview-footer .author {
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 1200px) {
+            .left-panel {
+                flex: 0 0 45%;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .left-panel {
+                flex: 0 0 auto;
+                max-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Partie gauche -->
+        <div class="left-panel">
+            <div class="header">
+                <h1>📖 Éditeur de Fluence</h1>
+                <p>Tests de lecture</p>
+            </div>
+
+            <div class="left-content">
+                <div class="form-group">
+                    <label for="title">Titre :</label>
+                    <input type="text" id="title" placeholder="Ex: La poule et le pommier" value="Mes vacances à Rumilly">
+                </div>
+
+                <div class="form-group">
+                    <label for="text">Texte :</label>
+                    <textarea id="text" placeholder="Saisissez ou collez votre texte ici...">La deuxième semaine des vacances, je suis allée à Rumilly en Haute-Savoie avec ma maman et ma sœur. On a pris la route en voiture. Ma maman a roulé 7 heures. C'était très très long.
+On a fait deux pauses : une pour se dégourdir les jambes et une pour manger. Ma sœur a pris des photos. Il y avait des montagnes jeunes et des montagnes anciennes. Certaines étaient même enneigées. Elles étaient très belles.</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="author">Source :</label>
+                    <input type="text" id="author" placeholder="Ex: Extrait de..." value="Texte libre de Manel">
+                </div>
+
+                <div class="settings-group">
+                    <h3>⚙️ Paramètres</h3>
+                    
+                    <div class="setting-item">
+                        <label for="fontFamily">Police</label>
+                        <select id="fontFamily">
+                            <option value="Arial" selected>Arial</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="fontSize">Taille</label>
+                        <select id="fontSize">
+                            <option value="10">10 pt</option>
+                            <option value="11">11 pt</option>
+                            <option value="12">12 pt</option>
+                            <option value="13">13 pt</option>
+                            <option value="14" selected>14 pt</option>
+                            <option value="16">16 pt</option>
+                            <option value="18">18 pt</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="lineHeight">Interligne</label>
+                        <select id="lineHeight">
+                            <option value="1.0">Simple (1.0)</option>
+                            <option value="1.15">1.15</option>
+                            <option value="1.5" selected>1.5</option>
+                            <option value="2.0">Double (2.0)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="lineWidth">Largeur: <span id="lineWidthValue">95</span>%</label>
+                        <input type="range" id="lineWidth" min="60" max="100" value="95" step="1">
+                    </div>
+                </div>
+
+                <div class="word-count-box">
+                    <div class="word-count-display" id="wordCount">0</div>
+                    <div class="word-count-label">mots dans le texte</div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-pdf" onclick="generatePdf()">
+                        📑 Générer le PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Partie droite -->
+        <div class="right-panel">
+            <div class="toolbar">
+                <span class="toolbar-label">Police</span>
+                <select id="toolbarFont">
+                    <option>Helvetica</option>
+                </select>
+                <span class="toolbar-divider"></span>
+                <span class="toolbar-label">Taille</span>
+                <select id="toolbarSize">
+                    <option>14 pt</option>
+                </select>
+                <span class="zoom-info">100%</span>
+            </div>
+
+            <div class="preview-container">
+                <div class="preview-page">
+                    <div class="preview-title" id="previewTitle">Mes vacances à Rumilly</div>
+                    <div class="text-display"></div>
+                    <div class="preview-footer">
+                        <p class="author" id="previewAuthor"></p>
+                        <p>Nombre de mots lus correctement : ___________</p>
+                        <p>Nombre de mots du texte : <span id="previewWordCount">0</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const textArea = document.getElementById('text');
+        const titleInput = document.getElementById('title');
+        const authorInput = document.getElementById('author');
+        const fontFamilySelect = document.getElementById('fontFamily');
+        const fontSizeInput = document.getElementById('fontSize');
+        const lineHeightSelect = document.getElementById('lineHeight');
+        const lineWidthSlider = document.getElementById('lineWidth');
+        const lineWidthValue = document.getElementById('lineWidthValue');
+        const wordCountDisplay = document.getElementById('wordCount');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewAuthor = document.getElementById('previewAuthor');
+        const previewWordCount = document.getElementById('previewWordCount');
+        const toolbarFont = document.getElementById('toolbarFont');
+        const toolbarSize = document.getElementById('toolbarSize');
+
+        // Mettre à jour l'affichage de la valeur du slider
+        lineWidthSlider.addEventListener('input', function() {
+            lineWidthValue.textContent = this.value;
+        });
+
+        // Fonction pour compter les mots (les tirets comptent comme séparateurs)
+        // Fonction pour compter les mots
+        // Règle : seuls les espaces séparent les mots
+        // Mais on ne compte pas la ponctuation seule comme « » : ; ! ? ,
+        function countWords(text) {
+            text = text.trim();
+            if (text === '') return 0;
+            const words = text.split(/\s+/).filter(word => {
+                if (word.length === 0) return false;
+                // Enlever la ponctuation pour vérifier s'il reste des lettres
+                const withoutPunctuation = word.replace(/[«»""'',;:!?.…\-]/g, '');
+                // Ne compter que si le mot contient au moins une lettre
+                return withoutPunctuation.length > 0;
+            });
+            return words.length;
+        }
+
+        // Fonction pour mesurer la largeur du texte
+        function getTextWidth(text, font, fontSize) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = `${fontSize}pt ${font}`;
+            return context.measureText(text).width;
+        }
+
+        // Fonction pour diviser le texte en lignes selon la largeur disponible
+        function wrapTextByWidth(text, font, fontSize, maxWidth) {
+            // Important: on découpe par espaces uniquement (pas par tirets)
+            // pour que "Haute-Savoie" reste ensemble visuellement
+            const words = text.split(/\s+/).filter(w => w.length > 0);
+            const lines = [];
+            let currentLine = '';
+
+            const pdfToPixelRatio = 1.33;
+            const maxWidthPixels = maxWidth * pdfToPixelRatio;
+
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const testWidth = getTextWidth(testLine, font, fontSize);
+
+                if (testWidth <= maxWidthPixels) {
+                    currentLine = testLine;
+                } else {
+                    // Si la ligne courante n'est pas vide, on la sauvegarde
+                    if (currentLine) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        // Si le mot seul est trop long, on le met quand même (évite boucle infinie)
+                        lines.push(word);
+                        currentLine = '';
+                    }
+                }
+            }
+
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+
+            return lines.length > 0 ? lines : [''];
+        }
+
+        // Mettre à jour l'aperçu
+        function updatePreview() {
+            const text = textArea.value;
+            const title = titleInput.value || 'Texte de Fluence';
+            const author = authorInput.value;
+            const font = fontFamilySelect.value;
+            const fontSize = parseInt(fontSizeInput.value);
+            const lineHeight = parseFloat(lineHeightSelect.value);
+            const lineWidthPercent = parseInt(lineWidthSlider.value);
+            const totalWords = countWords(text);
+
+            // Mettre à jour la toolbar
+            toolbarFont.innerHTML = `<option>${font}</option>`;
+            toolbarSize.innerHTML = `<option>${fontSize} pt</option>`;
+
+            // Calculer la largeur maximale disponible pour le texte
+            // Ajouter une marge de sécurité de 5% pour éviter les débordements à 100%
+            const safetyMargin = 0.95;
+            const pageContentWidth = 481 * 0.85;
+            const maxTextWidth = pageContentWidth * (lineWidthPercent / 100) * safetyMargin;
+
+            // Mettre à jour le titre
+            previewTitle.textContent = title;
+            previewTitle.style.fontFamily = font;
+
+            // Mettre à jour l'auteur
+            if (author) {
+                previewAuthor.textContent = author;
+                previewAuthor.style.display = 'block';
+                previewAuthor.style.fontFamily = font;
+            } else {
+                previewAuthor.style.display = 'none';
+            }
+
+            // Mettre à jour le compteur
+            wordCountDisplay.textContent = totalWords;
+            previewWordCount.textContent = totalWords;
+
+            // Diviser le texte en paragraphes
+            const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
+            
+            // Générer les lignes avec retours automatiques
+            const allLines = [];
+            paragraphs.forEach((paragraph, pIndex) => {
+                const lines = wrapTextByWidth(paragraph, font, fontSize, maxTextWidth);
+                allLines.push(...lines);
+                if (pIndex < paragraphs.length - 1) {
+                    allLines.push('');
+                }
+            });
+
+            // Calculer les nombres cumulés pour chaque ligne
+            let cumulativeWords = 0;
+            const lineData = allLines.map(line => {
+                const lineWords = countWords(line);
+                cumulativeWords += lineWords;
+                return {
+                    text: line,
+                    words: lineWords,
+                    cumulative: lineWords > 0 ? cumulativeWords : null
+                };
+            });
+
+            // Appliquer les styles à l'aperçu
+            const textDisplay = document.querySelector('.text-display');
+            textDisplay.style.fontFamily = font;
+            textDisplay.style.fontSize = fontSize + 'pt';
+            textDisplay.style.lineHeight = lineHeight;
+
+            // Afficher chaque ligne avec son numéro dans la même ligne HTML
+            textDisplay.innerHTML = lineData.map(data => `
+                <div class="line-row" style="font-family: ${font}; font-size: ${fontSize}pt; line-height: ${lineHeight};">
+                    <div class="text-column">
+                        <span class="text-line">${data.text || '&nbsp;'}</span>
+                    </div>
+                    <div class="numbers-column">
+                        <span class="number-line">${data.cumulative !== null ? data.cumulative : '&nbsp;'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialiser l'aperçu
+        updatePreview();
+
+        // Écouter les changements
+        textArea.addEventListener('input', updatePreview);
+        titleInput.addEventListener('input', updatePreview);
+        authorInput.addEventListener('input', updatePreview);
+        fontFamilySelect.addEventListener('change', updatePreview);
+        fontSizeInput.addEventListener('change', updatePreview);
+        lineHeightSelect.addEventListener('change', updatePreview);
+        lineWidthSlider.addEventListener('input', updatePreview);
+
+        // Générer un PDF
+        function generatePdf() {
+            const title = titleInput.value || 'Texte de Fluence';
+            const text = textArea.value;
+            const author = authorInput.value;
+            const font = fontFamilySelect.value;
+            const fontSize = parseInt(fontSizeInput.value);
+            const lineHeight = parseFloat(lineHeightSelect.value);
+            const lineWidthPercent = parseInt(lineWidthSlider.value);
+            const totalWords = countWords(text);
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            let yPos = 20;
+            const leftMargin = 20;
+            const rightMargin = 190;
+            
+            // Appliquer la même marge de sécurité que l'aperçu
+            const safetyMargin = 0.95;
+            const pageContentWidth = 481 * 0.85;
+            const maxTextWidth = pageContentWidth * (lineWidthPercent / 100) * safetyMargin;
+
+            // Titre
+            doc.setFontSize(16);
+            // Convertir le nom de police pour jsPDF
+            let pdfFont = 'helvetica';
+            if (font === 'Times New Roman') pdfFont = 'times';
+            else if (font === 'Courier New') pdfFont = 'courier';
+            
+            doc.setFont(pdfFont, 'bold');
+            doc.text(title, leftMargin, yPos);
+            yPos += 10;
+
+            // Diviser le texte en paragraphes
+            const paragraphs = text.split('\n').filter(p => p.trim().length > 0);
+            
+            // Générer les lignes avec retours automatiques
+            const allLines = [];
+            paragraphs.forEach((paragraph, pIndex) => {
+                const lines = wrapTextByWidth(paragraph, font, fontSize, maxTextWidth);
+                allLines.push(...lines);
+                if (pIndex < paragraphs.length - 1) {
+                    allLines.push('');
+                }
+            });
+
+            // Calculer les nombres cumulés
+            let cumulativeWords = 0;
+            const lineData = allLines.map(line => {
+                const lineWords = countWords(line);
+                cumulativeWords += lineWords;
+                return {
+                    text: line,
+                    cumulative: lineWords > 0 ? cumulativeWords : null
+                };
+            });
+
+            // Afficher le texte avec les numéros
+            doc.setFontSize(fontSize);
+            doc.setFont(pdfFont, 'normal');
+            
+            const lineSpacing = fontSize * lineHeight * 0.35;
+
+            lineData.forEach(data => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                // Texte
+                doc.text(data.text || '', leftMargin, yPos);
+
+                // Numéro à droite
+                if (data.cumulative !== null) {
+                    doc.setTextColor(100, 100, 100);
+                    doc.setFontSize(10);
+                    doc.text(String(data.cumulative), rightMargin, yPos, { align: 'right' });
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(fontSize);
+                }
+
+                yPos += lineSpacing;
+            });
+
+            yPos += 5;
+
+            // Auteur
+            if (author) {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                doc.setFont(pdfFont, 'italic');
+                doc.text(author, leftMargin, yPos);
+                yPos += 10;
+                doc.setFont(pdfFont, 'normal');
+            }
+
+            // Champs de test
+            if (yPos > 260) {
+                doc.addPage();
+                yPos = 20;
+            }
+
+            yPos += 5;
+            doc.setFontSize(11);
+            doc.text('Nombre de mots lus correctement : ___________', leftMargin, yPos);
+            yPos += 7;
+            doc.text(`Nombre de mots du texte : ${totalWords}`, leftMargin, yPos);
+
+            // Télécharger
+            doc.save(`${title.replace(/[^a-z0-9]/gi, '_')}_fluence.pdf`);
+        }
+    </script>
+</body>
+</html>
